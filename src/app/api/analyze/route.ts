@@ -26,134 +26,115 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Ticker is required' }, { status: 400 });
         }
 
-        if (!GEMINI_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-            console.error('Missing environment variables');
-            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        // Get API Key from request header if available (for user-provided keys)
+        const authHeader = request.headers.get('Authorization');
+        const userApiKey = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+        const activeApiKey = userApiKey || GEMINI_API_KEY;
+
+        if (!activeApiKey || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+            console.error('Missing configuration');
+            return NextResponse.json({ error: 'Server or API configuration error' }, { status: 500 });
         }
 
-        // 1. キャッシュ確認 (30日以内)
+        // 1. Cache Check (30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const { data: cachedRow, error: cacheError } = await supabase
+        const { data: cachedRow } = await supabase
             .from('buffett_analyses')
             .select('*')
             .eq('ticker', ticker.toUpperCase())
             .gt('created_at', thirtyDaysAgo.toISOString())
             .single();
 
-        // 2. yahoo-finance2 でリアルタイムデータ取得 (常に取得)
+        // 2. Fetch Real-time Data
         const quote = await yahooFinance.quote(ticker) as any;
         const currentPrice = quote?.regularMarketPrice || 0;
-        const currentPER = quote?.trailingPE || 0;
 
-        let finalData;
-
-        // キャッシュ有効性チェック (新しいフォーマットのデータか確認)
-        const isValidCache = cachedRow && cachedRow.analysis_result && typeof cachedRow.analysis_result.debtRatio !== 'undefined';
-
-        if (isValidCache) {
-            // キャッシュがある場合
+        if (cachedRow && cachedRow.analysis_result) {
             console.log('Using cached analysis for:', ticker);
-            finalData = {
+            return NextResponse.json({
                 ...cachedRow.analysis_result,
                 price: currentPrice,
                 lastUpdated: new Date(cachedRow.created_at).toLocaleString('ja-JP'),
-            };
-        } else {
-            // 3. キャッシュが無いまたは古い場合、財務データ取得
-            console.log('Fetching new analysis for:', ticker);
-            const financials = await yahooFinance.quoteSummary(ticker, {
-                modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail', 'assetProfile']
-            }) as any;
+            });
+        }
 
-            // 必要な指標の抽出
-            const roe = financials?.financialData?.returnOnEquity ? financials.financialData.returnOnEquity * 100 : 0;
-            const debtToEquity = financials?.financialData?.debtToEquity || 0;
-            const freeCashFlow = financials?.financialData?.freeCashflow || 0;
-            const grossMargin = financials?.financialData?.grossMargins ? financials.financialData.grossMargins * 100 : 0;
-            const assets = financials?.assetProfile?.longBusinessSummary || 'Non-disclosed Business Summary';
+        // 3. Fetch Financials for new analysis
+        console.log('Fetching new analysis for:', ticker);
+        const financials = await yahooFinance.quoteSummary(ticker, {
+            modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail', 'assetProfile']
+        }) as any;
 
-            // 4. Gemini API による定性評価（gemini-2.5-flash を使用）
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-            console.log('Starting Gemini analysis for:', ticker);
-            const prompt = `あなたはウォーレン・バフェットです。以下の財務データと事業内容を持つ企業について、バフェット流の投資哲学（経済的お堀、能力の輪、事業のシンプルさ、資本効率など）に照らし合わせて定性評価を行ってください。
+        const roe = financials?.financialData?.returnOnEquity ? financials.financialData.returnOnEquity * 100 : 0;
+        const debtToEquity = financials?.financialData?.debtToEquity || 0;
+        const grossMargin = financials?.financialData?.grossMargins ? financials.financialData.grossMargins * 100 : 0;
+        const currentPER = quote?.trailingPE || financials?.summaryDetail?.trailingPE || 0;
+        const businessSummary = financials?.assetProfile?.longBusinessSummary || 'Business summary not available.';
 
-【企業情報】
-ティッカー: ${ticker}
-事業概要: ${assets}
+        // 4. Gemini Analysis
+        const genAIUser = new GoogleGenerativeAI(activeApiKey);
+        const model = genAIUser.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        
+        const prompt = `現在は2026年3月です。あなたはウォーレン・バフェットです。以下のデータを持つ企業をあなたの投資哲学で分析してください。
+【企業】${ticker} - ${businessSummary.substring(0, 500)}...
+【指標】ROE: ${roe.toFixed(2)}%, D/E: ${debtToEquity.toFixed(2)}, 粗利: ${grossMargin.toFixed(2)}%, PER: ${currentPER.toFixed(2)}
 
-【財務指標】
-- ROE: ${roe.toFixed(2)}%
-- 負債比率 (D/E): ${debtToEquity.toFixed(2)}
-- 粗利益率: ${grossMargin.toFixed(2)}%
-- フリーキャッシュフロー: ${freeCashFlow.toLocaleString()}
-
-【指示】
-以下のJSONフォーマットで回答してください。思考過程は含めずJSONのみを出力してください。
+以下のJSONフォーマットのみで回答してください：
 {
-  "score": (0-100の整数),
-  "moat": "バフェット流の解説(100字程度)",
-  "simplicity": "事業のシンプルさの解説(100字程度)",
-  "summary": "投資家への一言メッセージ(120字程度)",
-  "epsGrowth": "過去数年の成長性についての短いコメント"
+  "score": (0-100),
+  "summary": "一言要約(100字)",
+  "metrics": [
+    {"label": "ROE", "value": "${roe.toFixed(1)}%", "grade": "S/A/B/C", "status": "一言評価", "description": "解説"},
+    {"label": "営業利益率", "value": "${grossMargin.toFixed(1)}%", "grade": "S/A/B/C", "status": "一言評価", "description": "解説"},
+    {"label": "PER", "value": "${currentPER.toFixed(1)}x", "grade": "S/A/B/C", "status": "一言評価", "description": "解説"},
+    {"label": "自己資本比率", "value": "${(100/debtToEquity).toFixed(1)}%", "grade": "S/A/B/C", "status": "一言評価", "description": "解説"},
+    {"label": "PBR", "value": "推定値", "grade": "S/A/B/C", "status": "一言評価", "description": "解説"},
+    {"label": "配当利回り", "value": "推定値", "grade": "S/A/B/C", "status": "一言評価", "description": "解説"}
+  ],
+  "qualitative": [
+    {"label": "ブランド・モート", "subLabel": "優位性の源泉", "status": "強力/標準/脆弱", "description": "200字程度の解説"},
+    {"label": "経営陣の質", "subLabel": "資本配分の効率", "status": "卓越/良好/懸念", "description": "200字程度の解説"}
+  ],
+  "thesis": [
+    {"title": "競争優位性", "content": "詳細解説"},
+    {"title": "リスク要因", "content": "詳細解説"}
+  ]
 }`;
 
-            const resAI = await model.generateContent(prompt);
-            const resText = resAI.response.text();
-            // JSON部分だけを抽出
-            const jsonStr = resText.match(/\{[\s\S]*\}/)?.[0] || '{}';
-            const aiAnalysis = JSON.parse(jsonStr);
+        const resAI = await model.generateContent(prompt);
+        const resText = resAI.response.text();
+        const jsonStr = resText.match(/\{[\s\S]*\}/)?.[0] || '{}';
+        const aiAnalysis = JSON.parse(jsonStr);
 
-            // 統合データ (Frontend の AnalysisResult 型に合わせる)
-            const analysisResult = {
-                score: aiAnalysis.score || 0,
-                moat: aiAnalysis.moat || '',
-                simplicity: aiAnalysis.simplicity || '',
-                roe: Math.round(roe * 10) / 10,
-                debtRatio: Math.round(debtToEquity * 100) / 100,
-                fcf: freeCashFlow > 0 ? "Positive" : "Negative",
-                grossMargin: Math.round(grossMargin * 10) / 10,
-                epsGrowth: aiAnalysis.epsGrowth || 'N/A',
-                capexRatio: 15, // デフォルト値
-                per: Math.round(currentPER * 10) / 10,
-                summary: aiAnalysis.summary || '',
-            };
+        const finalResult = {
+            ticker: ticker.toUpperCase(),
+            name: quote?.longName || ticker.toUpperCase(),
+            score: aiAnalysis.score || 70,
+            summary: aiAnalysis.summary || '',
+            metrics: aiAnalysis.metrics || [],
+            qualitative: aiAnalysis.qualitative || [],
+            thesis: aiAnalysis.thesis || [],
+        };
 
-            // 5. Supabase に保存
-            await supabase.from('buffett_analyses').upsert({
-                ticker: ticker.toUpperCase(),
-                analysis_result: analysisResult,
-                created_at: new Date().toISOString(),
-            });
+        // 5. Store in Supabase
+        await supabase.from('buffett_analyses').upsert({
+            ticker: ticker.toUpperCase(),
+            analysis_result: finalResult,
+            created_at: new Date().toISOString(),
+        }, { onConflict: 'ticker' });
 
-            finalData = {
-                ...analysisResult,
-                price: currentPrice,
-                lastUpdated: new Date().toLocaleString('ja-JP'),
-            };
-        }
+        return NextResponse.json({
+            ...finalResult,
+            price: currentPrice,
+            lastUpdated: new Date().toLocaleString('ja-JP'),
+        });
 
-        return NextResponse.json(finalData);
     } catch (error: any) {
         console.error('API Error:', error);
-
-        // ユーザーフレンドリーなエラーメッセージへの変換
-        let errorMessage = 'エラーが発生しました。';
-
-        if (error.message?.includes('Quote not found')) {
-            const ticker = error.message.split('symbol: ')[1] || '';
-            if (/^\d+$/.test(ticker)) {
-                errorMessage = `銘柄「${ticker}」が見つかりません。日本株の場合は「${ticker}.T」のように入力してください。`;
-            } else {
-                errorMessage = `銘柄「${ticker}」が見つかりません。ティッカーシンボルが正しいか確認してください。`;
-            }
-        } else if (error.message?.includes('Quota exceeded')) {
-            errorMessage = 'APIの利用制限を超えました。しばらく時間をおいてから再度お試しください。';
-        } else {
-            errorMessage = error.message || '予期せぬエラーが発生しました。';
-        }
-
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+        // Return a more descriptive error if it's from Gemini
+        const status = error.status || 500;
+        const message = error.message || 'Analysis failed (Internal Server Error)';
+        return NextResponse.json({ error: message }, { status });
     }
 }
