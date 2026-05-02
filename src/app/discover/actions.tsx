@@ -86,10 +86,14 @@ export async function askAI(userMessage: string) {
           }
         }
 
+        // シリアライズ保護: 確実に純粋なJSONデータのみをクライアントに返す
+        const safeStocks = searchStocksData ? JSON.parse(JSON.stringify(searchStocksData)) : null;
+        const safeAnalysis = toolAnalysisData ? JSON.parse(JSON.stringify(toolAnalysisData)) : null;
+
         return { 
           output: finalOutput, 
-          toolStocks: searchStocksData,
-          toolAnalysis: toolAnalysisData
+          toolStocks: safeStocks,
+          toolAnalysis: safeAnalysis
         };
       } catch (err: any) {
         console.error(`Error with ${modelId}:`, err);
