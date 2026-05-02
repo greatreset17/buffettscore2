@@ -19,11 +19,20 @@ class PipelineSingleton {
   }
 }
 
-// Supabaseクライアントの初期化
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+// Supabaseクライアントの初期化（本番環境でのクラッシュを避けるため安全に実行）
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+const getSupabase = () => {
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("Supabase environment variables are missing!");
+    return null;
+  }
+  return createClient(supabaseUrl, supabaseKey);
+};
+
+const supabase = getSupabase();
 
 export const searchStocksTool = (tool as any)({
   description:
@@ -72,15 +81,21 @@ export const searchStocksTool = (tool as any)({
       // クエリが空の場合はエラーを避けるためのデフォルト値
       const searchTarget = query || "AI";
 
-      // 1. クエリ文字列をベクトル化 (Embedding) - プロジェクト標準の Xenova/all-MiniLM-L6-v2 を使用
-      const extractor = await PipelineSingleton.getInstance();
-      const output = await extractor(searchTarget, {
-        pooling: "mean",
-        normalize: true,
-      });
-      const embedding = Array.from(output.data);
+      // 1. クエリ文字列をベクトル化 (Embedding)
+      let embedding: number[] = [];
+      try {
+        const extractor = await PipelineSingleton.getInstance();
+        const output = await extractor(searchTarget, {
+          pooling: "mean",
+          normalize: true,
+        });
+        embedding = Array.from(output.data);
+      } catch (embedError: any) {
+        console.error("Embedding failed:", embedError);
+        throw new Error(`ベクトル化処理に失敗しました。Vercel等の本番環境ではメモリ不足やファイルシステム制限でTransformersが動作しない場合があります。Error: ${embedError.message}`);
+      }
 
-      // 2. 数値パラメータのスケーリング処理（AIは % で出力するが、DBは小数で保存されているため / 100 する）
+      // 2. 数値パラメータのスケーリング処理
       const rpcArgs: any = {
         query_embedding: embedding,
         match_threshold: 0.1,
@@ -92,6 +107,10 @@ export const searchStocksTool = (tool as any)({
       if (parsedSales !== undefined && !isNaN(parsedSales)) rpcArgs.min_sales_growth = parsedSales / 100.0;
 
       // 3. SupabaseのRPC関数呼び出し
+      if (!supabase) {
+        throw new Error("Supabaseクライアントが正しく初期化されていません。NEXT_PUBLIC_SUPABASE_URL 等の環境変数が設定されているか確認してください。");
+      }
+
       console.log("Calling Supabase RPC with args:", { ...rpcArgs, query_embedding: "TRUNCATED" });
       const { data, error } = await supabase.rpc("hybrid_search_stocks", rpcArgs);
 
