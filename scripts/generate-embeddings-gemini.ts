@@ -25,7 +25,7 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !GEMINI_API_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const embedModel = genAI.getGenerativeModel({ model: "embedding-001" });
+const embedModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 // yahoo-finance2 v3 対応の初期化
 const yahooFinance = typeof yf === 'function' ? new (yf as any)() : yf;

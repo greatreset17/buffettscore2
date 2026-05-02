@@ -12,7 +12,7 @@ export async function POST(request: Request) {
         }
 
         // Google Gemini の Embedding API を使用
-        const model = genAI.getGenerativeModel({ model: "embedding-001" });
+        const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
         const result = await model.embedContent(text);
         const embedding = Array.from(result.embedding.values);
 
