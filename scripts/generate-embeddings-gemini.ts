@@ -27,6 +27,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const embedModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
+// yahoo-finance2 v3 対応の初期化
+const yahooFinance = typeof yf === 'function' ? new (yf as any)() : yf;
+
 async function main() {
   console.log('🚀 Gemini (text-embedding-004) による再ベクトル化を開始します...');
 
@@ -51,7 +54,7 @@ async function main() {
     process.stdout.write(`  ${t.symbol} ... `);
     try {
       // Yahoo Finance から事業概要を取得
-      const summary = await yf.quoteSummary(t.symbol, { modules: ['assetProfile'] }).catch(() => null);
+      const summary = await yahooFinance.quoteSummary(t.symbol, { modules: ['assetProfile'] }).catch(() => null);
       const description = summary?.assetProfile?.longBusinessSummary || t.name;
 
       // Gemini でベクトル化 (768次元)
