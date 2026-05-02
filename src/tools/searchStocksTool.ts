@@ -25,7 +25,7 @@ const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export const searchStocksTool = tool({
+export const searchStocksTool = (tool as any)({
   description:
     "複数の銘柄を条件（事業内容、ROE等）で『検索・スクリーニング』するためのツールです。※注意：特定の1銘柄に対する詳細な分析や評価を行う場合には、このツールを使用しないでください。",
   parameters: z.object({

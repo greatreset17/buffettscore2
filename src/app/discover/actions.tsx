@@ -22,7 +22,7 @@ export async function askAI(userMessage: string) {
     const parts = userMessage.split("TARGET_TICKER:")[1].trim().split(" ");
     const ticker = parts[0].trim();
     
-    const analysisData = await analyzeBuffettTool.execute({ ticker }, { toolCallId: "direct-eval", messages: [] });
+    const analysisData = await analyzeBuffettTool.execute!({ ticker }, { toolCallId: "direct-eval", messages: [] });
     return {
       output: `${ticker} の詳細分析レポートを直接生成しました。`,
       toolStocks: null,
@@ -39,7 +39,7 @@ export async function askAI(userMessage: string) {
     try {
       console.log(`Attempting with model: ${modelId}`);
       
-      const { text, steps } = await generateText({
+      const { text, steps } = await (generateText as any)({
         model: google(modelId),
         system: `あなたは厳格なアナリストです。
 銘柄を提案する際は、必ず searchStocksHybrid ツールが返したJSONデータの description（事業内容）と roe を根拠として引用し、なぜ合致するのか説明してください。
@@ -73,7 +73,7 @@ export async function askAI(userMessage: string) {
       
       // 自動リカバリ
       if (!finalOutput && !searchStocksData) {
-        searchStocksData = await searchStocksTool.execute({ query: userMessage }, { toolCallId: "auto-recovery", messages: [] });
+        searchStocksData = await searchStocksTool.execute!({ query: userMessage }, { toolCallId: "auto-recovery", messages: [] });
         finalOutput = "条件に合う銘柄を検索しました。";
       }
 

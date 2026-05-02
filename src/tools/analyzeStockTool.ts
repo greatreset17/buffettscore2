@@ -5,12 +5,12 @@ import yf from "yahoo-finance2";
 // yahoo-finance2 の初期化 (ESM/CJSの差異を吸収)
 const yahooFinance = typeof yf === 'function' ? new (yf as any)() : yf;
 
-export const analyzeStockTool = tool({
+export const analyzeStockTool = (tool as any)({
   description: "特定の1銘柄（ティッカー指定）のバフェット流評価を行うためのツールです。",
   parameters: z.object({
     ticker: z.string().describe("分析対象のティッカーシンボル（例: 7203.T, AAPL）"),
   }),
-  execute: async ({ ticker }) => {
+  execute: async ({ ticker }: any) => {
     try {
       console.log(`Analyzing stock: ${ticker}`);
       const symbol = ticker.replace(/[()"' ]/g, "").toUpperCase();
