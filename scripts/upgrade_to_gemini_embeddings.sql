@@ -1,8 +1,11 @@
--- 1. 既存の embedding カラムの型を変更 (384 -> 768)
--- ※ 既存のデータは一旦クリアされます（再ベクトル化が必要です）
-ALTER TABLE tickers ALTER COLUMN embedding TYPE vector(768);
+-- 1. 既存のインデックスやカラムを削除してクリーンアップ
+DROP INDEX IF EXISTS tickers_embedding_idx;
+ALTER TABLE tickers DROP COLUMN IF EXISTS embedding;
 
--- 2. 検索関数 (match_tickers) を 768次元対応に更新
+-- 2. 768次元のベクトルカラムを新規追加
+ALTER TABLE tickers ADD COLUMN embedding vector(768);
+
+-- 3. 検索関数 (match_tickers) を 768次元対応に更新
 CREATE OR REPLACE FUNCTION match_tickers (
   query_embedding vector(768),
   match_threshold float,
@@ -38,7 +41,7 @@ BEGIN
 END;
 $$;
 
--- 3. ハイブリッド検索関数 (hybrid_search_stocks) も 768次元対応に更新
+-- 4. ハイブリッド検索関数 (hybrid_search_stocks) も 768次元対応に更新
 CREATE OR REPLACE FUNCTION hybrid_search_stocks(
   query_embedding vector(768),
   match_threshold float,
@@ -73,7 +76,8 @@ BEGIN
     t.sales_growth,
     1 - (t.embedding <=> query_embedding) AS similarity
   FROM tickers t
-  WHERE (1 - (t.embedding <=> query_embedding) > match_threshold)
+  WHERE (t.embedding IS NOT NULL)
+    AND (1 - (t.embedding <=> query_embedding) > match_threshold)
     AND (t.roe >= min_roe OR min_roe = -999)
     AND (t.equity_ratio >= min_equity_ratio OR min_equity_ratio = -999)
     AND (t.sales_growth >= min_sales_growth OR min_sales_growth = -999)
