@@ -38,6 +38,7 @@ export const BottomNavBar: React.FC = () => {
   
   const navItems = [
     { label: '銘柄診断', icon: 'add_chart', href: '/' },
+    { label: 'AI探索', icon: 'explore', href: '/discover' },
     { label: '履歴', icon: 'history', href: '/history' },
     { label: '設定', icon: 'settings', href: '/settings' },
   ];

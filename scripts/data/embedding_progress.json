@@ -1,0 +1,28 @@
+{
+  "totalProcessed": 48257,
+  "totalSuccess": 14344,
+  "totalSkipped": 33894,
+  "totalFailed": 19,
+  "failedSymbols": [
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX",
+    "UTX"
+  ],
+  "lastRunAt": "2026-04-26T08:02:01.454Z"
+}

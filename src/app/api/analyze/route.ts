@@ -72,9 +72,15 @@ export async function POST(request: Request) {
         const currentPER = quote?.trailingPE || financials?.summaryDetail?.trailingPE || 0;
         const businessSummary = financials?.assetProfile?.longBusinessSummary || 'Business summary not available.';
 
-        // 4. Gemini Analysis
+        // 4. Gemini Analysis (フォールバックチェーン付き)
         const genAIUser = new GoogleGenerativeAI(activeApiKey);
-        const model = genAIUser.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        // モデルの優先順位: レート制限時に次のモデルへ自動切り替え
+        const MODEL_CHAIN = [
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',
+            'gemma-4-31b-it',
+        ];
         
         const prompt = `現在は2026年3月です。あなたはウォーレン・バフェットです。以下のデータを持つ企業をあなたの投資哲学で分析してください。
 【企業】${ticker} - ${businessSummary.substring(0, 500)}...
@@ -102,10 +108,39 @@ export async function POST(request: Request) {
   ]
 }`;
 
-        const resAI = await model.generateContent(prompt);
-        const resText = resAI.response.text();
+        // フォールバック付きでモデルを順番に試行
+        let resText = '';
+        let usedModel = '';
+        for (let i = 0; i < MODEL_CHAIN.length; i++) {
+            const modelName = MODEL_CHAIN[i];
+            try {
+                console.log(`🤖 モデル試行: ${modelName} (${i + 1}/${MODEL_CHAIN.length})`);
+                const model = genAIUser.getGenerativeModel({ model: modelName });
+                const resAI = await model.generateContent(prompt);
+                resText = resAI.response.text();
+                usedModel = modelName;
+                console.log(`✅ ${modelName} で応答成功`);
+                break; // 成功したらループを抜ける
+            } catch (modelError: any) {
+                const status = modelError?.status || modelError?.httpStatusCode || 0;
+                const message = modelError?.message || '';
+                const isRateLimit = status === 429 
+                    || message.includes('RESOURCE_EXHAUSTED')
+                    || message.includes('rate limit')
+                    || message.includes('quota');
+
+                if (isRateLimit && i < MODEL_CHAIN.length - 1) {
+                    console.warn(`⚠️ ${modelName} レート制限 → 次のモデルへフォールバック`);
+                    continue; // 次のモデルを試す
+                }
+                // 最後のモデルでも失敗、またはレート制限以外のエラー
+                throw modelError;
+            }
+        }
+
         const jsonStr = resText.match(/\{[\s\S]*\}/)?.[0] || '{}';
         const aiAnalysis = JSON.parse(jsonStr);
+
 
         const finalResult = {
             ticker: ticker.toUpperCase(),
@@ -127,6 +162,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             ...finalResult,
             price: currentPrice,
+            model: usedModel,
             lastUpdated: new Date().toLocaleString('ja-JP'),
         });
 
