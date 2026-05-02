@@ -8,13 +8,13 @@ const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
-// モデルチェーン: Gemini が全滅した時のために Gemma を最後に追加
+// モデルチェーン: Gemini が全滅した時のために Gemma を優先フォールバック
 const MODEL_CHAIN = [
   "gemini-2.0-flash",
   "gemini-1.5-flash",
-  "gemini-2.0-flash-lite-preview-02-05", // 最新の Lite
-  "gemma-3-27b-it",                      // Gemma 3
-  "gemma-4-31b-it",                      // Gemma 4 (最強の控え)
+  "gemini-2.0-flash-lite-preview-02-05",
+  "gemma-4-31b-it",
+  "gemma-3-27b-it",
 ] as const;
 
 export async function askAI(userMessage: string) {
@@ -29,16 +29,19 @@ export async function askAI(userMessage: string) {
       try {
         console.log(`Trying AI request with model: ${modelId}...`);
         
+        const isGemma = modelId.startsWith("gemma");
+
         const { text, steps } = await (generateText as any)({
           model: google(modelId),
-          system: `あなたはウォーレン・バフェット流の投資家です。
-誠実で冷静な口調で回答してください。
-検索ツールを使って銘柄を探し、その結果に基づいて提案を行ってください。`,
+          system: `あなたは投資アナリストです。
+銘柄検索ツールを使用して、ユーザーの要望に合う銘柄を提案してください。
+検索で見つかった銘柄については、その特徴を分かりやすく解説してください。
+もしツールが銘柄を返したなら、必ずその具体的な名前を挙げて説明を書いてください。`,
           prompt: userMessage,
           tools: {
             searchStocks: searchStocksTool,
           },
-          maxSteps: 5, // ツール呼び出しを確実に行わせるため少し増やす
+          maxSteps: 5,
         });
 
         let searchStocksData = null;
@@ -54,24 +57,34 @@ export async function askAI(userMessage: string) {
           }
         }
 
+        // 回答が空っぽ、または短すぎる場合の補完処理
+        let finalOutput = text?.trim();
+        if (!finalOutput || finalOutput.length < 5) {
+          if (searchStocksData && Array.isArray(searchStocksData) && searchStocksData.length > 0) {
+            const names = searchStocksData.map((s: any) => `${s.name} (${s.symbol})`).join('、');
+            finalOutput = `ご要望のテーマに沿って、${names} などの銘柄を見つけました。詳細は以下のカードをご覧ください。`;
+          } else {
+            finalOutput = text || "条件に合う銘柄が見つかりませんでした。";
+          }
+        }
+
         return { 
-          output: text || "検索結果をまとめました。", 
+          output: finalOutput, 
           toolStocks: searchStocksData ? JSON.parse(JSON.stringify(searchStocksData)) : null,
           toolAnalysis: null
         };
       } catch (err: any) {
         console.error(`Error with ${modelId}:`, err.message || err);
         lastError = err;
-        // どんなエラーでも次のモデルに望みを託す
         continue;
       }
     }
     
-    throw lastError || new Error("すべてのAIモデルでエラーが発生しました。");
+    throw lastError || new Error("AI呼び出しに失敗しました。");
   } catch (error: any) {
     console.error("FINAL_ASK_AI_ERROR:", error);
     return {
-      output: `申し訳ありません。現在全てのAIモデルが混み合っているか制限に達しています。しばらく時間をおいてから再度お試しください。\n\n詳細: ${error.message}`,
+      output: `エラーが発生しました: ${error.message}`,
       toolStocks: null,
       toolAnalysis: null
     };
