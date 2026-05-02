@@ -2,12 +2,12 @@
 DROP INDEX IF EXISTS tickers_embedding_idx;
 ALTER TABLE tickers DROP COLUMN IF EXISTS embedding;
 
--- 2. 768次元のベクトルカラムを新規追加
-ALTER TABLE tickers ADD COLUMN embedding vector(768);
+-- 2. 3072次元のベクトルカラムを新規追加 (Gemini Embedding 001 が 3072 を返すため)
+ALTER TABLE tickers ADD COLUMN embedding vector(3072);
 
--- 3. 検索関数 (match_tickers) を 768次元対応に更新
+-- 3. 検索関数 (match_tickers) を 3072次元対応に更新
 CREATE OR REPLACE FUNCTION match_tickers (
-  query_embedding vector(768),
+  query_embedding vector(3072),
   match_threshold float,
   match_count int
 )
@@ -41,9 +41,9 @@ BEGIN
 END;
 $$;
 
--- 4. ハイブリッド検索関数 (hybrid_search_stocks) も 768次元対応に更新
+-- 4. ハイブリッド検索関数 (hybrid_search_stocks) も 3072次元対応に更新
 CREATE OR REPLACE FUNCTION hybrid_search_stocks(
-  query_embedding vector(768),
+  query_embedding vector(3072),
   match_threshold float,
   match_count int,
   min_roe float DEFAULT -999,
