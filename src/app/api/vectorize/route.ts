@@ -11,8 +11,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Text is required' }, { status: 400 });
         }
 
-        // Google Gemini の Embedding API を使用 (transformers.js は使用しない)
-        const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+        // Google Gemini の Embedding API を使用
+        const model = genAI.getGenerativeModel({ model: "embedding-001" });
         const result = await model.embedContent(text);
         const embedding = Array.from(result.embedding.values);
 

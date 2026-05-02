@@ -19,7 +19,7 @@ export const searchStocksTool = (tool as any)({
       if (!supabase) throw new Error("Supabase is not configured");
 
       // 1. Google Gemini でクエリをベクトル化 (768次元)
-      const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+      const model = genAI.getGenerativeModel({ model: "embedding-001" });
       const result = await model.embedContent(query || "AI");
       const embedding = Array.from(result.embedding.values);
 
