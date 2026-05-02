@@ -34,7 +34,13 @@ async function main() {
   let totalProcessed = 0;
 
   while (true) {
-    // 1. 未処理（embedding が NULL）の銘柄を 50件ずつ取得
+    // 全体の残り件数を取得
+    const { count: totalRemaining } = await supabase
+      .from('tickers')
+      .select('id', { count: 'exact', head: true })
+      .is('embedding', null);
+
+    // 今回処理するバッチを取得
     const { data: tickers, error: fetchError } = await supabase
       .from('tickers')
       .select('id, symbol, name')
@@ -52,7 +58,7 @@ async function main() {
       break;
     }
 
-    console.log(`\n--- バッチ処理中 (残り約 ${tickers.length} 件 / 累計 ${totalProcessed} 件完了) ---`);
+    console.log(`\n--- バッチ処理中 (全体残り: ${totalRemaining} 件 / 累計 ${totalProcessed} 件完了) ---`);
 
     for (const t of tickers) {
       try {
