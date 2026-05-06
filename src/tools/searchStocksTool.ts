@@ -24,7 +24,7 @@ export const searchStocksTool = (tool as any)({
       const result = await model.embedContent({
         content: { role: "user", parts: [{ text: query || "AI" }] },
         outputDimensionality: 768,
-      }).catch(e => {
+      } as any).catch(e => {
         console.error("Embedding API Error:", e.message);
         return null;
       });

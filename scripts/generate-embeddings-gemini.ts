@@ -71,7 +71,7 @@ async function main() {
         const result = await embedModel.embedContent({
           content: { role: "user", parts: [{ text: description }] },
           outputDimensionality: 768,
-        });
+        } as any);
         const embedding = Array.from(result.embedding.values);
 
         // 更新
