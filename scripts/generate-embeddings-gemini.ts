@@ -25,31 +25,30 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !GEMINI_API_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const embedModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+const embedModel = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
 const yahooFinance = typeof yf === 'function' ? new (yf as any)() : yf;
 
 async function main() {
-  console.log('🚀 Gemini (gemini-embedding-001) による全件自動ベクトル化を開始します...');
-
+  console.log('🚀 Gemini Embedding 2 (gemini-embedding-2) によるベクトル化を開始します...');
+  const TARGET_LIMIT = 1000;
   let totalProcessed = 0;
 
-  while (true) {
-    // 全体の残り件数を取得
+  while (totalProcessed < TARGET_LIMIT) {
     const { count: totalRemaining } = await supabase
       .from('tickers')
       .select('id', { count: 'exact', head: true })
       .is('embedding', null);
 
-    // 今回処理するバッチを取得
+    const batchSize = Math.min(20, TARGET_LIMIT - totalProcessed);
     const { data: tickers, error: fetchError } = await supabase
       .from('tickers')
       .select('id, symbol, name')
       .is('embedding', null)
-      .limit(50);
+      .limit(batchSize); // バッチを小さくしてこまめに更新
 
     if (fetchError) {
-      console.error('❌ 取得失敗リトライ中...', fetchError);
-      await new Promise(r => setTimeout(r, 5000));
+      console.error('❌ 取得失敗:', fetchError);
+      await new Promise(r => setTimeout(r, 10000));
       continue;
     }
 
@@ -58,16 +57,21 @@ async function main() {
       break;
     }
 
-    console.log(`\n--- バッチ処理中 (全体残り: ${totalRemaining} 件 / 累計 ${totalProcessed} 件完了) ---`);
+    console.log(`\n--- 処理中 (残り: ${totalRemaining} 件 / 今回の目標まであと ${TARGET_LIMIT - totalProcessed} 件) ---`);
 
     for (const t of tickers) {
+      if (totalProcessed >= TARGET_LIMIT) break;
+      
       try {
         // Yahoo Finance から事業概要を取得
         const summary = await yahooFinance.quoteSummary(t.symbol, { modules: ['assetProfile'] }).catch(() => null);
         const description = summary?.assetProfile?.longBusinessSummary || t.name;
 
-        // Gemini でベクトル化
-        const result = await embedModel.embedContent(description);
+        // Gemini Embedding 2 でベクトル化 (768次元を指定)
+        const result = await embedModel.embedContent({
+          content: { role: "user", parts: [{ text: description }] },
+          outputDimensionality: 768,
+        });
         const embedding = Array.from(result.embedding.values);
 
         // 更新
@@ -79,16 +83,25 @@ async function main() {
         if (updateError) {
           process.stdout.write(`❌ ${t.symbol} `);
         } else {
-          process.stdout.write(`✅ ${t.symbol}(${embedding.length}d) `);
+          process.stdout.write(`✅ ${t.symbol} `);
           totalProcessed++;
         }
       } catch (err: any) {
-        process.stdout.write(`⚠️ ${t.symbol} `);
+        if (err.message?.includes('429') || err.message?.includes('quota')) {
+          console.log(`\n🛑 API制限に達しました。1分間待機します... (${t.symbol})`);
+          await new Promise(r => setTimeout(r, 60000));
+          break; // 現在のバッチを抜けてリトライ
+        } else {
+          process.stdout.write(`⚠️ ${t.symbol}(${err.message?.substring(0, 20)}) `);
+          // エラーが出ても embedding=NULL のままなので、次回またリトライされます
+        }
       }
-      // APIレート制限に配慮 (1秒に1件)
-      await new Promise(r => setTimeout(r, 800));
+      // 無料枠(15RPM)に配慮して、約4.5秒に1件のペースで実行
+      await new Promise(r => setTimeout(r, 4500));
     }
   }
+
+  console.log(`\n\n✅ 今回の目標 1000 件の処理が完了しました！ (累計処理数: ${totalProcessed} 件)`);
 }
 
 main();

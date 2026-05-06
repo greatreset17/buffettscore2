@@ -20,8 +20,11 @@ export const searchStocksTool = (tool as any)({
       if (!supabase) throw new Error("Supabase is not configured");
 
       // 1. Google Gemini でクエリをベクトル化
-      const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
-      const result = await model.embedContent(query || "AI").catch(e => {
+      const model = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
+      const result = await model.embedContent({
+        content: { role: "user", parts: [{ text: query || "AI" }] },
+        outputDimensionality: 768,
+      }).catch(e => {
         console.error("Embedding API Error:", e.message);
         return null;
       });
