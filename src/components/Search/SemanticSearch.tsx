@@ -48,7 +48,7 @@ export function SemanticSearch() {
       setResults(data || []);
     } catch (err) {
       console.error("Semantic search error:", err);
-      alert("検索中にエラーが発生しました。SQLスクリプトが実行されているか確認してください。");
+      alert(`検索エラー: ${err instanceof Error ? err.message : JSON.stringify(err)}`);
     } finally {
       setLoading(false);
     }
