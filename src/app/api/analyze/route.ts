@@ -77,9 +77,9 @@ export async function POST(request: Request) {
 
         // モデルの優先順位: レート制限時に次のモデルへ自動切り替え
         const MODEL_CHAIN = [
-            'gemini-2.5-flash',
-            'gemini-2.5-flash-lite',
+            'gemini-3.1-flash-lite',
             'gemma-4-31b-it',
+            'gemma-4-26b-it',
         ];
         
         const prompt = `現在は2026年3月です。あなたはウォーレン・バフェットです。以下のデータを持つ企業をあなたの投資哲学で分析してください。

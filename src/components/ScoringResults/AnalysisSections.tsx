@@ -9,7 +9,11 @@ export const InvestmentThesis: React.FC<{ data?: any[] }> = ({ data }) => {
       
       <div className="grid grid-cols-1 gap-6">
         {items.map((item: any, idx: number) => (
-          <div key={idx} className="space-y-4">
+          <div
+            key={idx}
+            className="space-y-4 animate-fade-in"
+            style={{ animationDelay: `${idx * 80}ms` }}
+          >
             <h4 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">verified</span>
               {item.title}

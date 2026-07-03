@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { SCORING_RESULTS_MOCK } from "@/data/mockData";
 
 export const StockHeader: React.FC<{ ticker: string; name?: string }> = ({ ticker, name }) => {
@@ -17,9 +17,51 @@ export const StockHeader: React.FC<{ ticker: string; name?: string }> = ({ ticke
   );
 };
 
+const COUNT_DURATION = 1200;
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
 export const ScoreCard: React.FC<{ score: number; summary?: string }> = ({ score, summary }) => {
   const dashArray = 283;
-  const dashOffset = dashArray - (dashArray * score) / 100;
+  const targetOffset = dashArray - (dashArray * score) / 100;
+
+  // SSR-safe initial state: 0 / empty gauge on both server and first client render
+  const [displayScore, setDisplayScore] = useState(0);
+  const [dashOffset, setDashOffset] = useState(dashArray);
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let rafId: number;
+    let startTime: number | null = null;
+
+    const tick = (now: number) => {
+      if (startTime === null) {
+        startTime = now;
+        // First frame after initial paint: kick off the gauge CSS transition
+        setDashOffset(targetOffset);
+      }
+      const t = Math.min((now - startTime) / COUNT_DURATION, 1);
+      setDisplayScore(Math.round(easeOutCubic(t) * score));
+      if (t < 1) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        setSettled(true);
+      }
+    };
+
+    // Double rAF so the initial (empty) gauge state is painted before transitioning
+    rafId = requestAnimationFrame(() => {
+      if (prefersReduced) {
+        // Skip the count-up; the global reduced-motion guard also disables the gauge transition
+        setDisplayScore(score);
+        setDashOffset(targetOffset);
+        return;
+      }
+      rafId = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [score, targetOffset]);
 
   return (
     <div className="flex flex-col items-center justify-center p-8 bg-surface-container-lowest rounded-3xl border border-outline-variant/10 shadow-sm relative overflow-hidden">
@@ -30,25 +72,25 @@ export const ScoreCard: React.FC<{ score: number; summary?: string }> = ({ score
             className="text-surface-container-high" 
             cx="50" cy="50" fill="none" r="45" stroke="currentColor" strokeWidth="2"
           />
-          <circle 
-            cx="50" cy="50" fill="none" r="45" 
-            stroke="url(#scoreGradient)" 
-            strokeDasharray={dashArray} 
-            strokeDashoffset={dashOffset} 
-            strokeLinecap="round" 
+          <circle
+            cx="50" cy="50" fill="none" r="45"
+            stroke="url(#scoreGradient)"
+            strokeDasharray={dashArray}
+            strokeDashoffset={dashOffset}
+            strokeLinecap="round"
             strokeWidth="4"
-            className="transition-all duration-1000 ease-out"
+            className="gauge-progress"
           />
           <defs>
             <linearGradient id="scoreGradient" x1="0%" x2="100%" y1="0%" y2="100%">
-              <stop offset="0%" style={{ stopColor: '#f2ca50', stopOpacity: 1 }} />
-              <stop offset="100%" style={{ stopColor: '#d4af37', stopOpacity: 1 }} />
+              <stop offset="0%" style={{ stopColor: 'var(--gold-bright)', stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: 'var(--gold)', stopOpacity: 1 }} />
             </linearGradient>
           </defs>
         </svg>
         <div className="text-center z-10">
-          <span className="font-sans font-extrabold text-7xl md:text-8xl text-primary block leading-none">
-            {score}
+          <span className={`font-sans font-extrabold text-7xl md:text-8xl text-primary block leading-none tabular-nums ${settled ? 'animate-score-settle' : ''}`}>
+            {displayScore}
           </span>
           <span className="font-label text-xs uppercase tracking-[0.2em] text-on-surface-variant/40 mt-2 block">
             Buffett Score

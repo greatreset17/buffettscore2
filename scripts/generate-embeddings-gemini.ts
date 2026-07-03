@@ -30,7 +30,7 @@ const yahooFinance = typeof yf === 'function' ? new (yf as any)() : yf;
 
 async function main() {
   console.log('🚀 Gemini Embedding 2 (gemini-embedding-2) によるベクトル化を開始します...');
-  const TARGET_LIMIT = 1000;
+  const TARGET_LIMIT = 3000;
   let totalProcessed = 0;
 
   while (totalProcessed < TARGET_LIMIT) {
@@ -87,17 +87,17 @@ async function main() {
           totalProcessed++;
         }
       } catch (err: any) {
-        if (err.message?.includes('429') || err.message?.includes('quota')) {
-          console.log(`\n🛑 API制限に達しました。1分間待機します... (${t.symbol})`);
-          await new Promise(r => setTimeout(r, 60000));
-          break; // 現在のバッチを抜けてリトライ
+        if (err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('RESOURCE_EXHAUSTED')) {
+          console.log(`\n🛑 API制限に達しました。詳細エラー: ${err.message}`);
+          console.log(`   → 処理中断(${t.symbol}) 処理済み: ${totalProcessed} 件`);
+          process.exit(0); // エラーで即停止
         } else {
           process.stdout.write(`⚠️ ${t.symbol}(${err.message?.substring(0, 20)}) `);
-          // エラーが出ても embedding=NULL のままなので、次回またリトライされます
+          // その他のエラーは embedding=NULL のままなので、次回またリトライされます
         }
       }
-      // 無料枠(15RPM)に配慮して、約4.5秒に1件のペースで実行
-      await new Promise(r => setTimeout(r, 4500));
+      // クォータに配慮しつつ、処理速度向上のため1.5秒に1件のペースで実行
+      await new Promise(r => setTimeout(r, 1500));
     }
   }
 

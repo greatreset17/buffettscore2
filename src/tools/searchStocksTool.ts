@@ -1,4 +1,5 @@
 import { tool } from "ai";
+import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -9,11 +10,38 @@ const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supaba
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENAI_API_KEY || "");
 
-export const searchStocksTool = (tool as any)({
+// ベクトル検索が使えない時のフォールバック。
+// クエリをスペースで単語に分割し、各単語で symbol / name / description を部分一致検索する
+// (「半導体 割安 株」のような複合クエリ全体では絶対にヒットしないため)
+async function keywordFallbackSearch(query: string) {
+  if (!supabase) return [];
+  const terms = query.split(/[\s、,]+/).filter(t => t.length >= 2);
+  if (terms.length === 0) terms.push(query);
+
+  const conditions = terms
+    .flatMap(t => [`symbol.ilike.%${t}%`, `name.ilike.%${t}%`, `description.ilike.%${t}%`])
+    .join(",");
+
+  const { data, error } = await supabase
+    .from("tickers")
+    .select("*")
+    .or(conditions)
+    .limit(10);
+
+  if (error) {
+    console.error("Keyword Fallback Error:", error.message);
+    return [];
+  }
+  console.log(`[Tool:searchStocks] Keyword fallback found ${data?.length || 0} results.`);
+  return data || [];
+}
+
+export const searchStocksTool = tool({
   description: "Search for stocks by keywords or semantic themes using vector search.",
-  parameters: (null as any),
-  execute: async (args: any) => {
-    const query = typeof args === "string" ? args : args?.query || "";
+  inputSchema: z.object({
+    query: z.string().describe("検索キーワードやテーマ（例: 半導体, AI関連, 再生可能エネルギー）"),
+  }),
+  execute: async ({ query }) => {
     console.log(`[Tool:searchStocks] Query: "${query}"`);
     
     try {
@@ -31,12 +59,7 @@ export const searchStocksTool = (tool as any)({
 
       if (!result) {
         console.log("Embedding failed, falling back to simple keyword search.");
-        const { data: kwData } = await supabase
-          .from("tickers")
-          .select("*")
-          .or(`symbol.ilike.%${query}%,name.ilike.%${query}%`)
-          .limit(10);
-        return kwData || [];
+        return keywordFallbackSearch(query);
       }
 
       const embedding = Array.from(result.embedding.values);
@@ -52,12 +75,7 @@ export const searchStocksTool = (tool as any)({
       if (error) {
         console.error("RPC Error:", error.message);
         // キーワード検索でフォールバック
-        const { data: kwData } = await supabase
-          .from("tickers")
-          .select("*")
-          .or(`symbol.ilike.%${query}%,name.ilike.%${query}%`)
-          .limit(10);
-        return kwData || [];
+        return keywordFallbackSearch(query);
       }
 
       console.log(`[Tool:searchStocks] Found ${data?.length || 0} results.`);

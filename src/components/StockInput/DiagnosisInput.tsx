@@ -128,7 +128,7 @@ export const DiagnosisInput: React.FC<Readonly<DiagnosisInputProps>> = ({ onSear
             <button
               onClick={() => onSearch(ticker)}
               disabled={isLoading || !ticker}
-              className="w-full md:w-auto md:px-16 py-5 bg-primary-container text-on-primary font-bold text-lg tracking-widest rounded-md hover:scale-[0.98] active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(212,175,55,0.2)] disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full md:w-auto md:px-16 py-5 bg-primary-container text-on-primary font-bold text-lg tracking-widest rounded-md hover:scale-[0.98] active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 shadow-[var(--shadow-gold)] disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <span className="group-hover:translate-x-[-2px] transition-transform">
                 {isLoading ? "分析中..." : "採点する"}

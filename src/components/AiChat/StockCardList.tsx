@@ -30,8 +30,8 @@ export function StockCardList({ stocks, onAnalyze }: Readonly<StockCardListProps
         {stocks.map((stock, i) => (
           <div
             key={stock.id}
-            className="animate-fade-in"
-            style={{ animationDelay: `${i * 100}ms` }}
+            className="animate-rise-in"
+            style={{ animationDelay: `${Math.min(i * 80, 480)}ms` }}
           >
             <StockCard stock={stock} onAnalyze={onAnalyze} />
           </div>

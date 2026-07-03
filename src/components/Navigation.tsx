@@ -14,7 +14,7 @@ export const TopAppBar: React.FC = () => {
           <button className="p-2 hover:bg-surface-container-low transition-colors rounded-lg active:scale-95 duration-200">
             <span className="material-symbols-outlined text-on-surface-variant">menu</span>
           </button>
-          <h1 className="text-xl font-sans font-bold tracking-tighter uppercase text-[#D4AF37]">
+          <h1 className="text-xl font-sans font-bold tracking-tighter uppercase text-gold">
             BUFFETT'S WISDOM
           </h1>
         </div>
@@ -54,7 +54,7 @@ export const BottomNavBar: React.FC = () => {
               href={item.href}
               className={`flex flex-col items-center justify-center py-2 px-4 transition-all duration-300 ${
                 isActive 
-                  ? 'text-[#F2CA50] scale-115' 
+                  ? 'text-gold-bright scale-115' 
                   : 'text-on-surface-variant/50 hover:text-on-surface-variant'
               }`}
             >

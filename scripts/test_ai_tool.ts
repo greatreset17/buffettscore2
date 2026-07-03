@@ -20,7 +20,7 @@ async function test() {
   console.log("Starting test...");
   try {
     const { text, steps } = await generateText({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3.1-flash-lite"),
       system: `あなたはバフェットです。銘柄相談に乗ります。
 銘柄カードを出したい時は search("キーワード")、分析時は analyze("銘柄") と含めてください。
 また、定量的な条件を伴う高度な検索が必要な場合は、検索ツールを呼び出して情報を取得してください。`,

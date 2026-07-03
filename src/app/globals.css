@@ -13,12 +13,17 @@
   --color-on-secondary: var(--on-secondary);
   --color-secondary-container: var(--secondary-container);
   --color-on-secondary-container: var(--on-secondary-container);
+  --color-tertiary: var(--tertiary);
+  --color-on-tertiary: var(--on-tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-tertiary-container: var(--on-tertiary-container);
   --color-surface: var(--surface);
   --color-on-surface: var(--on-surface);
   --color-surface-variant: var(--surface-variant);
   --color-on-surface-variant: var(--on-surface-variant);
   --color-outline: var(--outline);
   --color-outline-variant: var(--outline-variant);
+  --color-surface-container-lowest: var(--surface-container-lowest);
   --color-surface-container-low: var(--surface-container-low);
   --color-surface-container: var(--surface-container);
   --color-surface-container-high: var(--surface-container-high);
@@ -26,6 +31,28 @@
   --color-surface-bright: var(--surface-bright);
   --color-surface-dim: var(--surface-dim);
   --color-on-secondary-fixed: var(--on-secondary-fixed);
+
+  /* Semantic status colors */
+  --color-success: var(--success);
+  --color-success-container: var(--success-container);
+  --color-on-success-container: var(--on-success-container);
+  --color-warning: var(--warning);
+  --color-warning-container: var(--warning-container);
+  --color-on-warning-container: var(--on-warning-container);
+  --color-danger: var(--danger);
+  --color-danger-container: var(--danger-container);
+  --color-on-danger-container: var(--on-danger-container);
+
+  /* Brand gold (theme-invariant) */
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+
+  /* Modal scrim */
+  --color-scrim: var(--scrim);
+
+  /* Fixed dark panel (dark in both themes) */
+  --color-fixed-surface-text: var(--fixed-surface-text);
+  --color-fixed-surface-text-variant: var(--fixed-surface-text-variant);
 
   --font-headline: var(--font-newsreader);
   --font-body: var(--font-inter);
@@ -70,6 +97,33 @@
   --surface-dim: #d8dadc;
   
   --on-secondary-fixed: #131b2e;
+
+  /* Semantic status colors (Editorial Light) */
+  --success: #2e6b4a;
+  --success-container: #d7e9db;
+  --on-success-container: #1b4a30;
+
+  --warning: #96590a;
+  --warning-container: #f7e4c3;
+  --on-warning-container: #6b3d00;
+
+  --danger: #ba1a1a;
+  --danger-container: #ffdad6;
+  --on-danger-container: #93000a;
+
+  /* Brand gold (theme-invariant) */
+  --gold: #d4af37;
+  --gold-bright: #f2ca50;
+
+  /* Modal scrim */
+  --scrim: rgba(0, 0, 0, 0.4);
+
+  /* Fixed dark panel (dark in both themes) */
+  --fixed-surface-text: #ffffff;
+  --fixed-surface-text-variant: #a3b0cb;
+
+  /* Gold glow shadow */
+  --shadow-gold: 0 10px 30px color-mix(in srgb, var(--gold) 20%, transparent);
 }
 
 .dark {
@@ -110,6 +164,30 @@
   --surface-dim: #041329;
   
   --on-secondary-fixed: #0c1c32;
+
+  /* Semantic status colors (Midnight Sommelier) */
+  --success: #8fd0a5;
+  --success-container: #17382a;
+  --on-success-container: #b3e4c2;
+
+  --warning: #eab060;
+  --warning-container: #45300e;
+  --on-warning-container: #f8d9a8;
+
+  --danger: #ffb4ab;
+  --danger-container: #5a1614;
+  --on-danger-container: #ffdad6;
+
+  /* Brand gold (theme-invariant) */
+  --gold: #d4af37;
+  --gold-bright: #f2ca50;
+
+  /* Modal scrim */
+  --scrim: rgba(0, 0, 0, 0.6);
+
+  /* Fixed dark panel (dark in both themes) */
+  --fixed-surface-text: #ffffff;
+  --fixed-surface-text-variant: #a3b0cb;
 }
 
 body {
@@ -137,8 +215,57 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* fill-mode "both" keeps delayed elements hidden until their animation starts */
 .animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.5s ease-out both;
+}
+
+/* Card rise-in: fadeIn with a subtle scale settle, for card entrances */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-rise-in {
+  animation: riseIn 0.55s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+/* Stagger utilities: set animation-delay via --stagger-index or fixed steps */
+.animate-stagger {
+  animation-delay: calc(var(--stagger-index, 0) * 70ms);
+}
+.stagger-1 { animation-delay: 70ms; }
+.stagger-2 { animation-delay: 140ms; }
+.stagger-3 { animation-delay: 210ms; }
+.stagger-4 { animation-delay: 280ms; }
+.stagger-5 { animation-delay: 350ms; }
+.stagger-6 { animation-delay: 420ms; }
+
+/* Score number settle after count-up completes */
+@keyframes scoreSettle {
+  0% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.animate-score-settle {
+  animation: scoreSettle 0.35s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+/* Circular gauge: transition stroke-dashoffset from empty (283) to target */
+.gauge-progress {
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* Interactive card hover: slight lift + deeper shadow (token-based) */
+.card-interactive {
+  transition-property: transform, translate, scale, box-shadow, border-color, background-color, color;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1), var(--shadow-gold);
 }
 
 @keyframes shimmer {
@@ -147,9 +274,23 @@ body {
 }
 
 .shimmer {
-  background: linear-gradient(90deg, var(--surface-low) 25%, var(--surface-high) 50%, var(--surface-low) 75%);
+  background: linear-gradient(90deg, var(--surface-container-low) 25%, var(--surface-container-high) 50%, var(--surface-container-low) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* Reduced motion: collapse animations/transitions to near-instant */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .material-symbols-outlined {

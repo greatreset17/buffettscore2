@@ -30,16 +30,16 @@ export function StockCard({ stock, onAnalyze }: Readonly<StockCardProps>) {
         }
         onAnalyze?.(stock.symbol);
       }}
-      className="group relative bg-surface-container-low rounded-2xl p-5 border border-outline-variant/10 shadow-sm hover:shadow-lg hover:border-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer"
+      className="group relative bg-surface-container-low rounded-2xl p-5 border border-outline-variant/10 shadow-sm card-interactive hover:border-primary/20 active:scale-[0.98] cursor-pointer"
     >
       {/* ... */}
       <div className="absolute top-3 right-3 pointer-events-none">
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
             similarityPct >= 70
-              ? "bg-green-500/10 text-green-600 dark:text-green-400"
+              ? "bg-success-container text-on-success-container"
               : similarityPct >= 50
-                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                ? "bg-warning-container text-on-warning-container"
                 : "bg-outline-variant/10 text-on-surface-variant"
           }`}
         >

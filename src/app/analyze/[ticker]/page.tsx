@@ -87,7 +87,7 @@ export default function AnalysisPage({ params }: { params: Promise<{ ticker: str
              <div className="flex justify-between items-center mb-8">
                <h3 className="text-xl font-headline font-bold italic text-on-surface">分析ポートフォリオ</h3>
                <div className="flex gap-2">
-                 <span className="px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold tracking-wider rounded-full uppercase">Institutional Quality</span>
+                 <span className="px-3 py-1 bg-tertiary-container text-on-tertiary-container text-[10px] font-bold tracking-wider rounded-full uppercase">Institutional Quality</span>
                </div>
              </div>
              <div className="flex flex-col items-center gap-6">

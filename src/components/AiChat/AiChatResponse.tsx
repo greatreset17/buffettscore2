@@ -85,7 +85,7 @@ export function AiChatResponse({ content, toolStocks, toolAnalysis }: AiChatResp
           )}
           
           {error && (
-            <div className="p-4 text-xs text-red-400 bg-red-400/5 rounded-xl border border-red-400/10">
+            <div className="p-4 text-xs text-danger bg-danger/5 rounded-xl border border-danger/10">
               {error}
             </div>
           )}

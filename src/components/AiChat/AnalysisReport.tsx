@@ -16,30 +16,30 @@ interface AnalysisData {
 
 function gradeMetric(label: string, value: number): { grade: string; color: string } {
   if (label === "ROE") {
-    if (value >= 20) return { grade: "S", color: "text-green-500" };
-    if (value >= 15) return { grade: "A", color: "text-green-400" };
-    if (value >= 10) return { grade: "B", color: "text-yellow-500" };
-    return { grade: "C", color: "text-red-400" };
+    if (value >= 20) return { grade: "S", color: "text-success" };
+    if (value >= 15) return { grade: "A", color: "text-success/80" };
+    if (value >= 10) return { grade: "B", color: "text-warning" };
+    return { grade: "C", color: "text-danger" };
   }
   if (label === "PER") {
-    if (value > 0 && value <= 12) return { grade: "S", color: "text-green-500" };
-    if (value <= 18) return { grade: "A", color: "text-green-400" };
-    if (value <= 25) return { grade: "B", color: "text-yellow-500" };
-    return { grade: "C", color: "text-red-400" };
+    if (value > 0 && value <= 12) return { grade: "S", color: "text-success" };
+    if (value <= 18) return { grade: "A", color: "text-success/80" };
+    if (value <= 25) return { grade: "B", color: "text-warning" };
+    return { grade: "C", color: "text-danger" };
   }
   if (label === "粗利率") {
-    if (value >= 40) return { grade: "S", color: "text-green-500" };
-    if (value >= 25) return { grade: "A", color: "text-green-400" };
-    if (value >= 15) return { grade: "B", color: "text-yellow-500" };
-    return { grade: "C", color: "text-red-400" };
+    if (value >= 40) return { grade: "S", color: "text-success" };
+    if (value >= 25) return { grade: "A", color: "text-success/80" };
+    if (value >= 15) return { grade: "B", color: "text-warning" };
+    return { grade: "C", color: "text-danger" };
   }
   if (label === "D/E") {
-    if (value <= 30) return { grade: "S", color: "text-green-500" };
-    if (value <= 80) return { grade: "A", color: "text-green-400" };
-    if (value <= 150) return { grade: "B", color: "text-yellow-500" };
-    return { grade: "C", color: "text-red-400" };
+    if (value <= 30) return { grade: "S", color: "text-success" };
+    if (value <= 80) return { grade: "A", color: "text-success/80" };
+    if (value <= 150) return { grade: "B", color: "text-warning" };
+    return { grade: "C", color: "text-danger" };
   }
-  return { grade: "B", color: "text-yellow-500" };
+  return { grade: "B", color: "text-warning" };
 }
 
 export function AnalysisReport({ data }: Readonly<{ data: AnalysisData }>) {
@@ -106,10 +106,10 @@ export function AnalysisReport({ data }: Readonly<{ data: AnalysisData }>) {
             <div
               className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${
                 avgScore >= 80
-                  ? "border-green-500 text-green-500"
+                  ? "border-success text-success"
                   : avgScore >= 60
-                    ? "border-yellow-500 text-yellow-500"
-                    : "border-red-400 text-red-400"
+                    ? "border-warning text-warning"
+                    : "border-danger text-danger"
               }`}
             >
               <span className="font-bold text-xl">{avgScore}</span>

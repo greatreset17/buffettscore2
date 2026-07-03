@@ -12,7 +12,7 @@ export const MetricModal: React.FC<Readonly<MetricModalProps>> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-scrim backdrop-blur-sm animate-in fade-in duration-200">
       <div 
         className="bg-surface-container-lowest w-full max-w-md rounded-2xl shadow-2xl overflow-hidden scale-in-95 animate-in zoom-in duration-300"
         onClick={(e) => e.stopPropagation()}

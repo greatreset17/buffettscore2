@@ -229,7 +229,7 @@ function TickerSearch({
             <button
               onClick={() => onSearch(ticker)}
               disabled={isLoading || !ticker}
-              className="w-full md:w-auto md:px-16 py-4 bg-primary-container text-on-primary font-bold text-base tracking-widest rounded-md hover:scale-[0.98] active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(212,175,55,0.2)] disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full md:w-auto md:px-16 py-4 bg-primary-container text-on-primary font-bold text-base tracking-widest rounded-md hover:scale-[0.98] active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 shadow-[var(--shadow-gold)] disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <span className="group-hover:translate-x-[-2px] transition-transform">
                 {isLoading ? "分析中..." : "採点する"}
@@ -261,7 +261,7 @@ function TickerSearch({
                     ? "Analysing financial statements..."
                     : "Calculating Moat Score..."}
                 </p>
-                <div className="mt-4 w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+                <div className="mt-4 w-full h-1 shimmer rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all duration-500 ease-out"
                     style={{ width: `${progress}%` }}
@@ -375,7 +375,7 @@ function AIThemeSearch({ onSearch }: { onSearch: (ticker: string) => void }) {
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="w-full md:w-auto md:px-16 py-4 bg-primary-container text-on-primary font-bold text-base tracking-widest rounded-md hover:scale-[0.98] active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(212,175,55,0.2)] disabled:opacity-50 disabled:cursor-not-allowed group"
+            className="w-full md:w-auto md:px-16 py-4 bg-primary-container text-on-primary font-bold text-base tracking-widest rounded-md hover:scale-[0.98] active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 shadow-[var(--shadow-gold)] disabled:opacity-50 disabled:cursor-not-allowed group"
           >
             <span className="group-hover:translate-x-[-2px] transition-transform">
               {loading ? "AI分析中..." : "テーマで検索"}
@@ -387,13 +387,28 @@ function AIThemeSearch({ onSearch }: { onSearch: (ticker: string) => void }) {
         </div>
       </form>
 
-      {/* Loading Spinner */}
+      {/* Loading: spinner + shimmer skeleton rows */}
       {loading && (
-        <div className="flex flex-col items-center gap-3 py-6 animate-in fade-in duration-300">
-          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <p className="text-on-surface-variant font-label text-xs uppercase tracking-widest">
-            Embedding & Similarity Search...
-          </p>
+        <div className="space-y-3 animate-fade-in">
+          <div className="flex flex-col items-center gap-3 py-4">
+            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <p className="text-on-surface-variant font-label text-xs uppercase tracking-widest">
+              Embedding & Similarity Search...
+            </p>
+          </div>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low border border-outline-variant/10 animate-fade-in"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <div className="flex flex-col gap-2 flex-1">
+                <div className="shimmer h-4 w-1/3 rounded-md" />
+                <div className="shimmer h-3 w-2/3 rounded-md" />
+              </div>
+              <div className="shimmer h-6 w-12 rounded-md" />
+            </div>
+          ))}
         </div>
       )}
 
@@ -403,11 +418,12 @@ function AIThemeSearch({ onSearch }: { onSearch: (ticker: string) => void }) {
           <h3 className="text-[10px] font-label font-bold uppercase tracking-[0.2em] text-primary ml-1">
             AIが選んだ関連銘柄
           </h3>
-          {results.map((res) => (
+          {results.map((res, i) => (
             <div
               key={res.symbol}
               onClick={() => onSearch(res.symbol)}
-              className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low border border-outline-variant/10 hover:border-primary/30 hover:shadow-md transition-all duration-300 cursor-pointer group"
+              className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low border border-outline-variant/10 card-interactive hover:border-primary/30 cursor-pointer group animate-rise-in"
+              style={{ animationDelay: `${i * 70}ms` }}
             >
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-3">

@@ -6,10 +6,14 @@ export const MetricsGrid: React.FC<{ metrics: any[]; openModal: (t: string, c: s
     <div className="p-6 bg-surface-container-lowest rounded-lg border-l-4 border-primary-container shadow-sm animate-fade-in">
       <h4 className="text-xs font-bold text-secondary tracking-widest mb-6 uppercase">定量評価 (Quantitative)</h4>
       <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-        {metrics.map((metric: any) => {
+        {metrics.map((metric: any, idx: number) => {
           const isHighGrade = ['S', 'A+', 'A'].includes(metric.grade);
           return (
-            <div key={metric.label} className="relative">
+            <div
+              key={metric.label}
+              className="relative animate-fade-in"
+              style={{ animationDelay: `${100 + idx * 60}ms` }}
+            >
               <div className="flex items-center gap-1 mb-1">
                 <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-tighter">
                   {metric.label}
@@ -53,7 +57,11 @@ export const QualitativeAudit: React.FC<{ data: any[] }> = ({ data }) => {
       
       <div className="grid grid-cols-1 gap-8">
         {data.map((item, idx) => (
-          <div key={idx} className="space-y-4">
+          <div
+            key={idx}
+            className="space-y-4 animate-fade-in"
+            style={{ animationDelay: `${idx * 80}ms` }}
+          >
             <div className="flex flex-col gap-1">
               <span className="font-sans text-[10px] text-primary font-bold uppercase tracking-[0.2em]">{item.label}</span>
               <h4 className="font-sans text-xl font-bold text-on-surface">{item.subLabel}</h4>

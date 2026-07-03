@@ -132,10 +132,11 @@ export default function HistoryPage() {
               <p className="font-sans text-on-surface-variant uppercase tracking-widest text-[10px] font-bold">履歴を読み込み中...</p>
             </div>
           ) : filteredHistory.length > 0 ? (
-            filteredHistory.map((item) => (
+            filteredHistory.map((item, idx) => (
               <div 
                 key={item.ticker}
-                className="group relative bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+                className="group relative bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm card-interactive hover:border-primary/20 animate-rise-in"
+                style={{ animationDelay: `${Math.min(idx * 60, 360)}ms` }}
               >
                 <div className="flex justify-between items-center">
                   <Link href={`/analyze/${item.ticker}`} className="flex-1">
